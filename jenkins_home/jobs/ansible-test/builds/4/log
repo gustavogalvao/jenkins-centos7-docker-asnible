@@ -1,0 +1,19 @@
+Started by user [8mha:////4FOlCMVeFP36faCKl3xLz3Vbk7aR2NbGZGPkPBIRpqxuAAAAlx+LCAAAAAAAAP9b85aBtbiIQTGjNKU4P08vOT+vOD8nVc83PyU1x6OyILUoJzMv2y+/JJUBAhiZGBgqihhk0NSjKDWzXb3RdlLBUSYGJk8GtpzUvPSSDB8G5tKinBIGIZ+sxLJE/ZzEvHT94JKizLx0a6BxUmjGOUNodHsLgAzWEgZu/dLi1CL9xJTczDwAj6GcLcAAAAA=[0madmin
+Running as SYSTEM
+Building in workspace /var/jenkins_home/workspace/ansible-test
+[8mha:////4J9W8lrsHv88supFtgJFLqeUtN9Rrv2D6Wj8k7I/rAqOAAAAqh+LCAAAAAAAAP9b85aBtbiIQSujNKU4P0+vIKc0PTOvWC8xrzgzOT8nv0gvMbkkEyjhCKb88ktSdwVsu2efuqidiYHRh4EDIu2ZUsIg5JOVWJaon5OYl64fXFKUmZduXVHEIAU1ODk/rzg/J1XPGUKDDGKAAEYmBoaKghIGlRTjNEszE7NEXTNjc2Ndk0RLS11LM1NzICvN3NIw2TIlNTURAOU4vxivAAAA[0m[ansible-test] $ ansible-playbook /var/jenkins_home/ansible/play.yml -i /var/jenkins_home/ansible/hosts -f 5 -e "MSG='Hello World'"
+
+PLAY [test1] *******************************************************************
+
+TASK [Gathering Facts] *********************************************************
+[0;32mok: [test1][0m
+
+TASK [debug] *******************************************************************
+[0;32mok: [test1] => {[0m
+[0;32m    "msg": "Hello World"[0m
+[0;32m}[0m
+
+PLAY RECAP *********************************************************************
+[0;32mtest1[0m                      : [0;32mok=2   [0m changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+Finished: SUCCESS

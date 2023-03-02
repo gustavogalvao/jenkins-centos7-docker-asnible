@@ -679,8 +679,8 @@
 			- Choose your IAM user name (not the check box).
 			- Open the Security credentials tab, and then choose Create access key.
 			- To see the new access key, choose Show. Your credentials resemble the following:
-			- Access key ID: AKIAIOSFODNN7EXAMPLE
-			- Secret access key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+			- Access key ID: XXXXXXXXXXXXXX
+			- Secret access key: ZZZZZZZZZZZZZZZZZZZZZZZ
 			- To download the key pair, choose Download .csv file. Store the .csv file with keys in a secure location.
 
 
@@ -745,10 +745,10 @@
 
 		- configure aws cli using access key
 			- copy the access key id from .csv file
-			$ export AWS_ACCESS_KEY_ID=AKIA27AHEVAPPWKBMC6I
+			$ export AWS_ACCESS_KEY_ID=XXXXXXXXXXXXXX AKIA27AHEVAPPWKBMC6I
 
 			- copy secret key 
-			$ export AWS_SECRET_ACCESS_KEY=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
+			$ export AWS_SECRET_ACCESS_KEY=ZZZZZZZZZZZZZZZZZZZZZZZ
 
 		- upload mysql backup file to S3
 			$ aws s3 cp /tmp/db.sql s3://jenkins-mysql5.7-backup/db.sql
@@ -798,8 +798,8 @@
 			DB_NAME=$3
 
 			mysqldump -u root -h $DB_HOST -p$DB_PASSWORD  $DB_NAME > /tmp/db-$DATE.sql
-			export AWS_ACCESS_KEY_ID=AKIA27AHEVAPPWKBMC6I 
-			export AWS_SECRET_ACCESS_KEY=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
+			export AWS_ACCESS_KEY_ID=XXXXXXXXXXXXXX 
+			export AWS_SECRET_ACCESS_KEY=ZZZZZZZZZZZZZZZZZZZZZZZ
 
 		- final /tmp/script.sh
 
@@ -817,14 +817,14 @@
 			BUCKET_NAME=$5
 
 			mysqldump -u root -h $DB_HOST -p$DB_PASSWORD $DB_NAME > /tmp/$BACKUP && \
-			export AWS_ACCESS_KEY_ID=AKIA27AHEVAPPWKBMC6I && \
+			export AWS_ACCESS_KEY_ID=XXXXXXXXXXXXXX && \
 			export AWS_SECRET_ACCESS_KEY=$AWS_SECRET && \
 			echo "Uploading your $BACKUP backup" && \
 			aws s3 cp /tmp/$BACKUP s3://$BUCKET_NAME/$BACKUP
 
 			==============================================================
 
-			$ /tmp/script.sh db_host 1234 testdb E+8+X8pGEhFvp8l0yIz7FwO/jxy2byfRGprYp4zQ jenkins-mysql5.7-backup
+			$ /tmp/script.sh db_host 1234 testdb ZZZZZZZZZZZZZZZZZZZZZZZ jenkins-mysql5.7-backup
 			Uploading your db-01-56-49.sql backup
 			upload: ./db-01-56-49.sql to s3://jenkins-mysql5.7-backup/db-01-56-49.sql
 
@@ -901,7 +901,7 @@
 			BUCKET_NAME=$5
 
 			mysqldump -u root -h $DB_HOST -p$DB_PASSWORD $DB_NAME > /tmp/$BACKUP && \
-			export AWS_ACCESS_KEY_ID=AKIA27AHEVAPPWKBMC6I && \
+			export AWS_ACCESS_KEY_ID=XXXXXXXXXXXXXX && \
 			export AWS_SECRET_ACCESS_KEY=$AWS_SECRET && \
 			echo "Uploading your $BACKUP backup" && \
 			aws s3 cp /tmp/$BACKUP s3://$BUCKET_NAME/$BACKUP
@@ -986,3 +986,746 @@
 			- AWS_BUCKET_NAME: jenkins-mysql5.7-backup2
 
 		- run and success
+
+
+
+# JENKINS + ANSIBLE
+
+	-  inside jenkins-data folder create a new folder jenkins-ansible
+		$ mkdir jenkins-ansible
+		$ cd jenkins-ansible
+
+		$ vi Dockerfile
+
+		==============================================================
+
+		FROM jenkins/jenkins
+
+		USER root
+
+		RUN apt-get update && apt-get install python3-pip -y && \
+		    pip3 install ansible --upgrade
+
+		USER jenkins
+
+		==============================================================
+
+	- edit docker-copose.yml
+
+		$ vi docker-compose.yml
+
+		==============================================================
+
+		version: '3'
+		services:
+		  jenkins:
+		    container_name: jenkins
+		    image: jenkins-ansilbe
+		    build:
+		      context: jenkins-ansible
+		    ports:
+		      - "8080:8080"
+		    volumes:
+		      - $PWD/jenkins_home:/var/jenkins_home
+		    networks:
+		      - net
+		  remote_host:
+		    container_name: remote-host
+		    image: remote-host
+		    build:
+		      context: centos7
+		    volumes:
+		      - "$PWD/aws-s3.sh:/tmp/script.sh"
+		    networks:
+		      - net
+		  db_host:
+		    container_name: db
+		    image: mysql:5.7
+		    environment:
+		      - "MYSQL_ROOT_PASSWORD=1234"
+		    volumes:
+		      - "$PWD/db_data:/var/lib/mysql"
+		    networks:
+		      - net
+		networks:
+		  net:
+
+		==============================================================
+
+		$ docker-compose build
+		Successfully built 72c606bc3414
+		Successfully tagged remote-host:latest
+
+		$ docker-compose up -d
+		Recreating jenkins     ... done
+		Recreating db          ... done
+		Recreating remote-host ... done 
+
+	- make the ssh keys permanent on the Jenkins container 
+		$ pwd
+		/home/jenkins/jenkins-data
+
+		$ mkdir jenkins_home/ansible
+
+		- copy centos7/remote_key to jenkins_home/ansible/
+			$ cp centos7/remote_key jenkins_home/ansible/
+
+		- copy centos7/remote_key to jenkins-ansible/
+			$ cp centos7/remote_key jenkins-ansible/
+
+	- create basic ansible inventory 
+
+		- create ansible hosts file
+			$ cd jenkins-ansible/
+			$ vi hosts
+
+			==============================================================
+
+			[all:vars]
+
+			ansible_connection = ssh
+
+			[test]
+			test1 ansible_host=remote_host ansible_user=remote_user ansible_private_key_file=/var/jenkins_home/ansible/remote_key
+
+			==============================================================
+
+			$ cp hosts ../jenkins_home/ansible/
+			$ docker exec -ti jenkins bash
+			$ cd
+			$ cd ansible/
+			$ ansible -i hosts -m ping test1
+
+			test1 | SUCCESS => {
+			    "ansible_facts": {
+			        "discovered_interpreter_python": "/usr/bin/python"
+			    },
+			    "changed": false,
+			    "ping": "pong"
+			} 
+
+	- create ansible playbook
+		$ pwd
+		/home/jenkins/jenkins-data/jenkins-ansible
+
+		$ vi play.yml
+
+		==============================================================
+
+		- hosts: test1
+		  tasks:
+
+		    - shell: echo Hello World > /tmp/ansible-file
+
+		==============================================================
+
+		$ cp play.yml ../jenkins_home/ansible/
+
+		$ docker exec -ti jenkins bash
+		$ cd && cd ansible/
+		$ ansible-playbook -i hosts play.yml
+
+
+		PLAY [test1] *******************************************************************************************************************************************************************************************************************************
+
+		TASK [Gathering Facts] *********************************************************************************************************************************************************************************************************************
+		ok: [test1]
+
+		TASK [shell] *******************************************************************************************************************************************************************************************************************************
+		changed: [test1]
+
+		PLAY RECAP *********************************************************************************************************************************************************************************************************************************
+		test1                      : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+		$ exit
+
+		$ docker exec -ti remote-host bash
+		$ cat /tmp/ansible-file
+		Hello World
+
+	- integrate ansible and jenkins (Ansible Plugin)
+		- install ansible plugin on jenkins
+
+	- learn how to execute Playbooks from a Jenkins Job
+		- New item
+		- Name: ansible-test
+		- Freestyle project
+		- Build Steps -> Invoke Ansible Playbook
+		- Playbook path: /var/jenkins_home/ansible/play.yml
+		- File or host list: /var/jenkins_home/ansible/hosts
+		- Save and run
+
+		Started by user Jenkins Admin
+		Running as SYSTEM
+		Building in workspace /var/jenkins_home/workspace/ansible-test
+		[ansible-test] $ ansible-playbook /var/jenkins_home/ansible/play.yml -i /var/jenkins_home/ansible/hosts -f 5
+
+		PLAY [test1] *******************************************************************
+
+		TASK [Gathering Facts] *********************************************************
+		ok: [test1]
+
+		TASK [shell] *******************************************************************
+		changed: [test1]
+
+		PLAY RECAP *********************************************************************
+		test1                      : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+		Finished: SUCCESS
+
+		- go back and check the file /tmp/ansible-file on remote-host container
+
+		- you can also edit the file /home/jenkins/jenkins-data/jenkins_home/ansible/play.yml 
+			to change the on the container and run the job on jenkins
+
+	- add parameters to Ansible and Jenkins
+		$ pwd
+		/home/jenkins/jenkins-data/jenkins-ansible
+
+		$ vi play.yml 
+		$ cp play.yml ../jenkins_home/ansible/
+
+		==============================================================
+
+		- hosts: test1
+		  tasks:
+		   - debug:
+		       msg: "{{ MSG }}"
+
+		==============================================================
+
+		- configure job ansible-test on jenkins 
+			- check "This project is parameterised"
+			
+			- add parameter
+			- name: ANSIBLE_MSG
+			- default value: Hello World
+
+			- Build Steps -> Invoke Ansible Playbook -> Advanced
+			- add extra variable
+			- key: MSG
+			- value: $ANSIBLE_MSG
+
+			- Build with parameters
+			- ANSIBLE_MSG: Hello World Test
+
+			Started by user Jenkins Admin
+			Running as SYSTEM
+			Building in workspace /var/jenkins_home/workspace/ansible-test
+			[ansible-test] $ ansible-playbook /var/jenkins_home/ansible/play.yml -i /var/jenkins_home/ansible/hosts -f 5 -e "MSG='Hello World Test'"
+
+			PLAY [test1] *******************************************************************
+
+			TASK [Gathering Facts] *********************************************************
+			ok: [test1]
+
+			TASK [debug] *******************************************************************
+			ok: [test1] => {
+			    "msg": "Hello World Test"
+			}
+
+			PLAY RECAP *********************************************************************
+			test1                      : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+			Finished: SUCCESS
+
+	- Colorize your playbooks' output
+		- install AnsiColor on jenkins
+		- configure the job on jenkins 
+			- Build Environment -> Color ANSI Console Output.- xterm
+			- Build Steps -> Advaned -> Colorized stdout
+
+	
+
+	============================================================================================================
+
+
+	- Challenge: Jenkins + Ansible + MySQL + PHP + NGINX + Shell Scripting
+		- we are creating an app to register users and then list them in a webpage
+
+	- create the DB that will hold all the users
+		$ docker exec -ti db bash
+		$ mysql -u root -p1234
+
+		mysql> create database people;
+		Query OK, 1 row affected (0.01 sec)	
+
+		mysql> use people;
+		Database changed
+		mysql> create table register (id int(3), name varchar(50), lastname varchar(50), age int(3));
+		Query OK, 0 rows affected (0.13 sec)
+
+	- Create a Bash Script to feed your DB - I
+		 $pwd
+		 /home/jenkins/jenkins-data/jenkins-ansible
+
+		 - create a file with random "name,lastname" format
+		 $ vi people.txt
+		 $ cat people.txt 
+			Denice,Caudle  
+			Cherise,Olenick  
+			Nohemi,Overlock  
+			Tom,Fellers  
+			Teri,Mess  
+			Violette,Zawislak  
+			Gisele,Cremeans  
+			Rey,Sturdevant  
+			Jeannine,Hysell  
+			Preston,Manigault
+
+		$ nl people.txt 
+		     1	Denice,Caudle  
+		     2	Cherise,Olenick  
+		     3	Nohemi,Overlock  
+		     4	Tom,Fellers  
+		     5	Teri,Mess  
+		     6	Violette,Zawislak  
+		     7	Gisele,Cremeans  
+		     8	Rey,Sturdevant  
+		     9	Jeannine,Hysell  
+		    10	Preston,Manigault  
+
+		$ nl people.txt | grep -w 1 | awk '{print $2}' | awk -F ',' '{print $1}'
+			Denice
+
+		$ nl people.txt | grep -w 1 | awk '{print $2}' | awk -F ',' '{print $2}'
+			Caudle
+
+		$ vi put.sh
+
+		==============================================================
+
+		#!/bin/bash
+
+		counter=0
+
+		while [ $counter -lt 10 ]; do
+		  let counter=counter+1
+
+		  name=$(nl people.txt | grep -w $counter | awk '{print $2}' | awk -F ',' '{print $1}')
+		  lastname=$(nl people.txt | grep -w $counter | awk '{print $2}' | awk -F ',' '{print $2}')
+		  age=$(shuf -i 20-25 -n 1)
+
+		  mysql -u root -p1234 people -e "insert into register values($counter, '$name', '$lastname', $age)"
+		  echo "$counter, $name $lastname, $age was correctly imported"
+		done	
+
+		==============================================================
+
+		$ chmod +x put.sh
+		$ docker cp put.sh db:/tmp
+		$ docker cp people.txt db:/tmp
+
+		$ docker exec -ti db bash
+			$ bash-4.2# cd /tmp/
+			$ bash-4.2# ./put.sh
+
+			mysql: [Warning] Using a password on the command line interface can be insecure.
+			10, Rachele Lichtenberger, 24 was correctly imported
+
+			$ mysql -u root -p
+
+			mysql> use people;
+			Reading table information for completion of table and column names
+			You can turn off this feature to get a quicker startup with -A
+
+			Database changed
+			mysql> select * from register;
+			+------+------------+---------------+------+
+			| id   | name       | lastname      | age  |
+			+------+------------+---------------+------+
+			|    1 | Denice     | Caudle        |   20 |
+			|    2 | Cherise    | Olenick       |   23 |
+			|    3 | Nohemi     | Overlock      |   24 |
+			|    4 | Tom        | Fellers       |   24 |
+			|    5 | Teri       | Mess          |   24 |
+			|    6 | Violette   | Zawislak      |   23 |
+			|    7 | Gisele     | Cremeans      |   20 |
+			|    8 | Rey        | Sturdevant    |   22 |
+			|    9 | Jeannine   | Hysell        |   24 |
+			|   10 | Preston    | Manigault     |   23 |
+			+------+------------+---------------+------+
+			10 rows in set (0.00 sec)
+
+		
+	- start building a Docker Nginx Web Server + PHP
+		$ pwd
+		/home/jenkins/jenkins-data
+
+		$ mkdir jenkins-ansible/web/bin
+		$ vi jenkins-ansible/web/bin/start.sh
+
+		==============================================================
+
+		#!/bin/bash
+
+		# Starts ssh
+
+		/usr/sbin/sshd
+
+		# Starts php process in background
+
+		/usr/sbin/php-fpm -c /etc/php/fpm
+
+		# Starts nginx daemon
+
+		nginx -g 'daemon off;'
+
+		==============================================================
+
+		$ mkdir jenkins-ansible/web/conf
+		$ vi jenkins-ansible/web/conf/nginx.conf
+
+		==============================================================
+
+		server {
+		  listen       80;
+		  server_name  jenkins-centos7;
+		  root         /var/www/html;
+		  index        index.php;
+		  access_log   /var/log/nginx/localhost-access.log;
+		  error_log    /var/log/nginx/localhost-error.log;
+
+		  location / {
+
+		    try_files $uri $uri/ /index.php?$args;
+
+		  }
+
+		  location ~ \.php$ {
+
+		    try_files $uri =404;
+		    include /etc/nginx/fastcgi_params;
+		    fastcgi_pass 127.0.0.1:9000;
+		    fastcgi_index index.php;
+		    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+		    fastcgi_param PATH_INFO $fastcgi_script_name;
+		    fastcgi_intercept_errors on;
+
+		  }
+
+		}
+
+		==============================================================
+
+		$ vi jenkins-ansible/web/conf/nginx.repo
+
+		==============================================================
+
+		[nginx]
+		name=nginx repo
+		baseurl=http://nginx.org/packages/centos/7/$basearch/
+		gpgcheck=0
+		enabled=1
+
+		==============================================================
+
+		$ vi jenkins-ansible/web/Dockerfile
+
+		==============================================================
+		
+		FROM jenkins/jenkins
+
+		USER root
+
+		RUN apt-get update && apt-get install python3-pip -y && \
+		    pip3 install ansible --upgrade
+
+		USER jenkins		
+
+		==============================================================
+
+		$ docker-compose build
+		$ docker-compose up -d
+
+		$ docker exec -ti web bash
+		$ cd /var/www/html/
+		$ vi index..php
+
+		==============================================================
+
+		<?php
+
+		// Show all information, defaults to INFO_ALL
+		phpinfo();
+
+		// Show just the module information.
+		// phpinfo(8) yields identical results.
+
+		?>		
+
+		==============================================================
+
+		- go on web browser http://http://jenkins-centos7/:80
+
+	- Build a table using HTML, CSS and PHP to display users
+		$ pwd
+		/home/jenkins/jenkins-data/jenkins-ansible
+
+		$ vi table.j2
+
+		==============================================================
+
+		<!DOCTYPE html>
+		<html>
+		<head>
+		 <title>Table with database</title>
+		 <style>
+		  table {
+		   border-collapse: collapse;
+		   width: 100%;
+		   color: #588c7e;
+		   font-family: monospace;
+		   font-size: 25px;
+		   text-align: left;
+		     }
+		  th {
+		   background-color: #588c7e;
+		   color: white;
+		    }
+		  tr:nth-child(even) {background-color: #f2f2f2}
+		 </style>
+		</head>
+		<body>
+		 <table>
+		 <tr>
+		  <th>id</th>
+		  <th>name</th>
+		  <th>lastname</th>
+		  <th>age</th>
+		 </tr>
+		 <?php
+		  $conn = mysqli_connect("db", "root", "1234", "people");
+		  // Check connection
+		  if ($conn->connect_error) {
+		   die("Connection failed: " . $conn->connect_error);
+		  }
+		  $sql = "SELECT id, name, lastname, age FROM register"; TODO -> {% if PEOPLE_AGE is defined %} where age = {{ PEOPLE_AGE }} {% endif %}";
+		  $result = $conn->query($sql);
+		  if ($result->num_rows > 0) {
+		   // output data of each row
+		   while($row = $result->fetch_assoc()) {
+		    echo "<tr><td>" . $row["id"]. "</td><td>" . $row["name"] . "</td><td>"
+		. $row["lastname"]. "</td><td>" . $row["age"]. "</td></tr>";
+		  }
+		    echo "</table>";
+		  } else { echo "0 results"; }
+		  $conn->close();
+		?>
+		</table>
+		</body>
+		</html>
+
+		==============================================================
+
+		$ docker cp table.j2 web:/var/www/html/index.php 
+
+	- Integrate your Docker Web Server to the Ansible Inventory
+		$ pwd
+		/home/jenkins/jenkins-data
+
+		$ vi jenkins_home/ansible/hosts
+
+		==============================================================
+		
+		[all:vars]
+
+		ansible_connection = ssh
+
+		[test]
+		test1 ansible_host=remote_host ansible_user=remote_user ansible_private_key_file=/var/jenkins_home/ansible/remote_key
+		web1 ansible_host=web ansible_user=remote_user ansible_private_key_file=/var/jenkins_home/ansible/remote_key	
+
+		==============================================================
+
+		$ docker exec -ti jenkins bash
+		$ cd && cd ansible/
+
+		$ ansible -m ping -i hosts web1
+		web1 | SUCCESS => {
+		    "ansible_facts": {
+		        "discovered_interpreter_python": "/usr/bin/python"
+		    },
+		    "changed": false,
+		    "ping": "pong"
+		}
+ 
+
+	- Create a Playbook in Ansible to update your web table
+		$ pwd
+		/home/jenkins/jenkins-data
+
+		$ vi jenkins_home/ansible/people.yml
+
+		==============================================================
+
+		- hosts: web1
+		  tasks:
+		    - name: Transfer template to web server
+		      template:
+		       src: table.j2
+		       dest: /var/www/html/index.php
+
+		==============================================================
+
+		$ vi table.j2
+
+		==============================================================
+
+		<!DOCTYPE html>
+		<html>
+		<head>
+		 <title>Table with database</title>
+		 <style>
+		  table {
+		   border-collapse: collapse;
+		   width: 100%;
+		   color: #588c7e;
+		   font-family: monospace;
+		   font-size: 25px;
+		   text-align: left;
+		     }
+		  th {
+		   background-color: #588c7e;
+		   color: white;
+		    }
+		  tr:nth-child(even) {background-color: #f2f2f2}
+		 </style>
+		</head>
+		<body>
+		 <table>
+		 <tr>
+		  <th>id</th>
+		  <th>name</th>
+		  <th>lastname</th>
+		  <th>age</th>
+		 </tr>
+		 <?php
+		  $conn = mysqli_connect("db", "root", "1234", "people");
+		  // Check connection
+		  if ($conn->connect_error) {
+		   die("Connection failed: " . $conn->connect_error);
+		  }
+		  $sql = "SELECT id, name, lastname, age FROM register {% if PEOPLE_AGE is defined %} where age = {{ PEOPLE_AGE }} {% endif %}";
+		  $result = $conn->query($sql);
+		  if ($result->num_rows > 0) {
+		   // output data of each row
+		   while($row = $result->fetch_assoc()) {
+		    echo "<tr><td>" . $row["id"]. "</td><td>" . $row["name"] . "</td><td>"
+		. $row["lastname"]. "</td><td>" . $row["age"]. "</td></tr>";
+		  }
+		    echo "</table>";
+		  } else { echo "0 results"; }
+		  $conn->close();
+		?>
+		</table>
+		</body>
+		</html>
+
+		==============================================================
+
+		- Test your playbook and see the magic!
+			$pwd
+			/home/jenkins/jenkins-data/jenkins-ansible
+
+			$ cp table.j2 ../jenkins_home/ansible/
+			$ cd ../jenkins_home/ansible/
+
+			$ docker exec -yi jenkins bash
+			$ cd && cd ansible/
+			$ ansible-playbook i hosts people.yml
+
+			ERROR! the playbook: i could not be found
+			jenkins@e2bcea216217:~/ansible$ ansible-playbook -i hosts people.yml
+
+			PLAY [web1] ********************************************************************************************************************************************************************************************************************************
+
+			TASK [Gathering Facts] *********************************************************************************************************************************************************************************************************************
+			[WARNING]: Timeout exceeded when getting mount info for /var/log/php-fpm
+			[WARNING]: Timeout exceeded when getting mount info for /var/www/html
+			ok: [web1]
+
+			TASK [Transfer template to web server] *****************************************************************************************************************************************************************************************************
+			fatal: [web1]: FAILED! => {"changed": false, "checksum": "cd2c7f3f7bfc0095ea9c1f6eb6ded529916cb2dd", "msg": "Destination /var/www/html not writable"}
+
+			PLAY RECAP *********************************************************************************************************************************************************************************************************************************
+			web1                       : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0 
+
+			$ exit
+			$ docker exec -ti web bash
+			# cd /var/www/
+			$ ll 
+				total 0
+				drwxr-xr-x. 2 root root 23 Mar  2 20:49 html
+			
+			$ chown remote_user:remote_user /var/www/html/ -R
+			$ ll
+				total 0
+				drwxr-xr-x. 2 remote_user remote_user 23 Mar  2 20:49 html
+
+			$ exit
+
+			$ docker exec -ti jenkins bash
+			$ cd && cd ansible/
+			$ ansible-playbook -i hosts people.yml
+
+
+			PLAY [web1] ********************************************************************************************************************************************************************************************************************************
+
+			TASK [Gathering Facts] *********************************************************************************************************************************************************************************************************************
+			[WARNING]: Timeout exceeded when getting mount info for /var/www/html
+			ok: [web1]
+
+			TASK [Transfer template to web server] *****************************************************************************************************************************************************************************************************
+			changed: [web1]
+
+			PLAY RECAP *********************************************************************************************************************************************************************************************************************************
+			web1                       : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+
+	- Ready? Let's create a Jenkins Job to build everything with a click!
+
+		- create a new job on jenkins
+			- new item
+			- name:ansible-users-db
+			- freestyle project
+			- check "this project is parameterised"
+			- add variable: choice parameter
+				- name:AGE
+				- choices: 20 22 23 24 25
+			- build enviroment: check "color ANSI console outpup"
+			- build steps: invoke ansible playbood
+				- path: /var/jenkins_home/ansible/people.yml
+				- inventory -> file or host list -> file path or comma separated host list: /var/jenkins_home/ansible/hosts
+				- advanced: check "colorized stdout"
+				- extra variable: 
+					- key: PEOPLE_AGE
+					- value: $AGE
+
+			- build with parameters
+
+			Started by user admin
+			Running as SYSTEM
+			Building in workspace /var/jenkins_home/workspace/ansible-users-db
+			[ansible-users-db] $ ansible-playbook /var/jenkins_home/ansible/people.yml -i /var/jenkins_home/ansible/hosts -f 5 -e PEOPLE_AGE=23
+
+			PLAY [web1] ********************************************************************
+
+			TASK [Gathering Facts] *********************************************************
+			[WARNING]: Timeout exceeded when getting mount info for /var/log/php-fpm
+			[WARNING]: Timeout exceeded when getting mount info for /var/log/nginx
+			[WARNING]: Timeout exceeded when getting mount info for /var/www/html
+			ok: [web1]
+
+			TASK [Transfer template to web server] *****************************************
+			changed: [web1]
+
+			PLAY RECAP *********************************************************************
+			web1                       : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+			Finished: SUCCESS
+
+			- go to web browser http://jenkins-centos7:80 to see the result
+
+
+
