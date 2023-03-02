@@ -20,6 +20,16 @@
                 <privateKey>{AQAAABAAAAaQHuGtxRJG4kWSCCEIaaqu8OOGZLlW2tOv42PksKHe9T33EGeuWsjTlVJbSI3bPORSkOI9tTGm0jj2a/AF6w0vR4ap5aB8jvKlb3YnG1Rse5wjIqXO5h6X2Xh578+gtRuw5JyZSxfK34Ht2S/lDDdGJ8nkionWPPdtGTCHKxH61xp6OIKCDgUhcc117xad1sJ9SWa9Z4AlHuz7BdXOIaAb6WpIvl03z0Xd2IfTT0d8u54Yrka2lmloMFgct7AueXv5hp0004ZGcCrgnhWwQQliwxXLpTSPpoi/7y+bQnmeFOaaTukR3nhjDnZ5/qJ4KXaVNDwHcy3r8WEdvAqkIosv197JoYgajOUtfUHSvD9bztd5xN5Yoii3+uXibuv+9NKP3VojSJfSPXcKg2gYVy7DAA2fUbliSLrzkGrsVFbCM0c90WU52rxaFPMAu7v89ze8p+Ewg8AwVu4Ra4iF+O+CIeZAnsF1p0EDzOxwDiUKU3U/Ne54u6Vji01ExASgscRSKvmdBmuFCPfOUx5EKgNgt4DIXo+eCvVSFwWKKsu1WSYIp5DHZrdyzlJUcmT2zhDiozwiI9JaqkC175oExmWSYyA2H6LobtoOKSVjRZvkZrpGPTFPsfQG0EyN/45RpoQF5wTwvlNlwgQaIxU6V8220eQLXruuC2La1ee2QeR1NekJBGI4QDFzZCGcluU2ptPEzvyxZ2BLoLArapMUo+IkeR6hCgp+btds7sqs0OGFFksvvLLffP9k+DWCb1FggFghWIL2AM/NAIT9xdFuURH7SAZSQqqQKsKkoaMVCyU8HuXsTg+gEKYYr3lCKr7aWHkLHPPMoc6BG3tpL/RVyjq5RFMadx4jdK+l3D2RjoIaiJpAFg3Lw8KN57PaqW5ArHZ9Smpl+jl1BNYmOV6ModQMn5ehDC9UGAvggTjkCQqa+ZMkIte7ZV7R+94B5rJ5eEUstO2Ql8a5rm87ynguAqoMH5LIwE1pobnfCpUKbm3QX7QocguEDrvOgaSszfMotel89bTuiX2fCJya7Yr+0XQgy/e8P60JcBNXDjaYQxmwhcPG5Gc/SRQrD6YMGY0kNceQvv3Xowm7YJry/liV/zj//vWUP5IfKilkC5gVox4ClHYdS1EkA54+mVsb1NEN8OIPYUE9GOylhCdzAfdgRcRusddcoVfsgm04+A/oU8PU1ryChIMMQOQ4xynX2tAPZdlHtphB7gW/mtUDDfXanOVx8tZjyc6IVaDrSiRHb8MeGf2MIJdsCN2iEDElIj6mf8Vhuh3NAkJXB/geD/Ig7BC9OggcE990HWt7QF/DuDvIdSU5KnlKQrJKBA00aYZBgGDyVjaGsGWj5tdGzVdZvfYqwIEmacjD8A1UlYqLdjWoW+hAnlcVXJS0KwplKBUfB9QpermQ8euXPCtJTysINeVw5vg6VuuYZvslw0UScJrel3gqxPG3TaZqsZ9qVAXyYt/+AoxL609mZHM0VgSL92v/ibCOyyrNMl2tZnE6I9bv3pPAMB/eCca1UseduVXAGGuEEZrRmGwaKULTtz88CMzza2GziDS8AnVxTg+NmmQNmUtwhlL/XmNWQiJ/p3U9ckuS15wu8VXKsmHa1iviVPgPpLUP2NAL3DkADssIgXGTu/YkG7JbSi4l4D9ee3aA2Cs3dSK28tL58PMdmTrbh8h/mhIHAtjORwybtOJfV5yrFolFm0RXaamyLAw8Y9mfcWEwje+PAq66ca7YQpoRJyzfgTi8gv0d5A5wDDqmyBujDHCddfpQJ4hTylR7nV7qUT0RsbYuXcuVinp62HhWRbQs74xf7HCHsf+b6o1CCI73DK/k2D7EVeKqXueXiXtvAl3m0ky2yWPQdmrdztsfmqVpES+cNO3BVrxZfnPpyyEyIHAwN10f8C9ANMI4eYAASWiO0xuyzTQDhnnkrU3YavvLL5H2PneqscnginKQrKD1YXAZ62bmJNmBcIv4GsLnKze8LuiwgAAIsxyA4wdTHa269PQ76FXp6l66kZz6uvN6njeaFtUIhOzU5F1swXh7WwJjYAARH5prRyTavIGN7TMc9T/wBIBGM4j7UAuiVXE6AmR0MEWTp7ir5i64AjkEFo+A7yRVKn2SX9tqi9UVLW5qHf6u/lSWQSKuk0nY0RPTizVxJS8dBEdbMSX5VORAicn3/m9oKtVp/x80w3S1b9/o2Fgu5Q/47yrbYt6mDd183RP5o9uChnHG2YBr6thwPgQHgdA5Fux5kuGrkmXtzHRf1A==}</privateKey>
               </privateKeySource>
             </com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey>
+            <org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl plugin="plain-credentials@143.v1b_df8b_d3b_e48">
+              <id>MYSQL_PASSWORD</id>
+              <description></description>
+              <secret>{AQAAABAAAAAQFbu53d9oxX3oJPxr8F+VN7zfQ+N/VF91dwSY6ojJluM=}</secret>
+            </org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl>
+            <org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl plugin="plain-credentials@143.v1b_df8b_d3b_e48">
+              <id>AWS_SECRET_KEY</id>
+              <description></description>
+              <secret>{AQAAABAAAAAwJz5lWRyTZK16chz6S7OniBQBtklnCfJ/TLIYr6tfv0XMG4bWwAbbgeTY05Q8Fv0YIhpnJ/ribYNJ4ln99be6XA==}</secret>
+            </org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl>
           </java.util.concurrent.CopyOnWriteArrayList>
         </entry>
       </domainCredentialsMap>

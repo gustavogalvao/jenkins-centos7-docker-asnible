@@ -474,3 +474,515 @@
 		$ docker exec -it remote-host bash
 		$ cat /tmp/remote-file 
 			Hello, Gustavo. Current date and time is Sun Feb 26 20:20:03 UTC 2023
+
+# JENKINS AND AWS
+
+	- create mysql container
+		$ pwd
+		/home/jenkins/jenkins-data
+
+		$ vi docker-compose.yml
+
+		==========================================================
+
+		version: '3'
+		services:
+		  jenkins:
+		    container_name: jenkins
+		    image: jenkins/jenkins
+		    ports:
+		      - "8080:8080"
+		    volumes:
+		      - $PWD/jenkins_home:/var/jenkins_home
+		    networks:
+		      - net
+		  remote_host:
+		    container_name: remote-host
+		    image: remote-host
+		    build:
+		      context: centos7
+		    networks:
+		      - net
+		  db_host:
+		    container_name: db
+		    image: mysql:5.7
+		    environment:
+		      - "MYSQL_ROOT_PASSWORD=1234"
+		    volumes:
+		      - "$PWD/db_data:/var/lib/mysql"
+		    networks:
+		      - net
+		networks:
+		  net:
+
+		=========================================================
+
+		$ docker-compose up -d
+		Pulling db_host (mysql:5.7)...
+		5.7: Pulling from library/mysql
+		e048d0a38742: Pull complete
+		c7847c8a41cb: Pull complete
+		351a550f260d: Pull complete
+		8ce196d9d34f: Pull complete
+		17febb6f2030: Pull complete
+		d4e426841fb4: Pull complete
+		fda41038b9f8: Pull complete
+		f47aac56b41b: Pull complete
+		a4a90c369737: Pull complete
+		97091252395b: Pull complete
+		84fac29d61e9: Pull complete
+		Digest: sha256:8cf035b14977b26f4a47d98e85949a7dd35e641f88fc24aa4b466b36beecf9d6
+		Status: Downloaded newer image for mysql:5.7
+		jenkins is up-to-date
+		remote-host is up-to-date
+		Creating db ... done
+
+		$ docker exec -ti db bash
+		$ bash-4.2# mysql -u root -p
+		Enter password: 
+		Welcome to the MySQL monitor.  Commands end with ; or \g.
+		Your MySQL connection id is 2
+		Server version: 5.7.41 MySQL Community Server (GPL)
+
+		Copyright (c) 2000, 2023, Oracle and/or its affiliates.
+
+		Oracle is a registered trademark of Oracle Corporation and/or its
+		affiliates. Other names may be trademarks of their respective
+		owners.
+
+		Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+		mysql> show databases;
+		+--------------------+
+		| Database           |
+		+--------------------+
+		| information_schema |
+		| mysql              |
+		| performance_schema |
+		| sys                |
+		+--------------------+
+		4 rows in set (0.04 sec)
+
+		$ mysql> exit
+		Bye
+		$bash-4.2# exit
+		exit
+
+	- install mysql client nad aws client
+		$ cd centos7/
+		$ vi Dockerfile
+
+		==================================================================
+
+		FROM centos:7
+
+		RUN yum -y install openssh-server
+
+		RUN useradd remote_user && \
+		    echo "1234" | passwd remote_user --stdin && \
+		    mkdir /home/remote_user/.ssh && \
+		    chmod 700 /home/remote_user/.ssh
+
+		COPY remote_key.pub /home/remote_user/.ssh/authorized_keys
+
+		RUN chown remote_user:remote_user -R /home/remote_user && \
+		    chmod 400 /home/remote_user/.ssh/authorized_keys
+
+		RUN /usr/sbin/sshd-keygen
+
+		RUN yum -y install mysql
+
+		RUN curl -O https://bootstrap.pypa.io/pip/2.7/get-pip.py && \
+		    python get-pip.py && \
+		    pip install awscli --upgrade
+
+		CMD /usr/sbin/sshd -D
+
+		=================================================================
+
+		$ cd ..
+		$ docker-compose build
+		Successfully built 72c606bc3414
+		Successfully tagged remote-host:latest
+
+		$ docker-compose up -d
+		Starting jenkins       ... done
+		Starting db            ... done
+		Recreating remote-host ... done
+
+		$ docker exec -ti remote-host bash
+		
+		$ mysql
+		ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock' (2)
+
+		$ aws
+		Note: AWS CLI version 2, the latest major version of the AWS CLI, is now stable and recommended for general use. For more information, see the AWS CLI version 2 installation instructions at: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
+
+		usage: aws [options] <command> <subcommand> [<subcommand> ...] [parameters]
+		To see help text, you can run:
+
+		  aws help
+		  aws <command> help
+		  aws <command> <subcommand> help
+		aws: error: too few arguments
+
+	- create mysql database
+		$ docker exec -ti remote-host bash
+		$ mysql -u root -h db_host -p
+		Enter password: 
+		Welcome to the MariaDB monitor.  Commands end with ; or \g.
+		Your MySQL connection id is 2
+		Server version: 5.7.41 MySQL Community Server (GPL)
+
+		Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+		Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+		MySQL [(none)]> show databases;
+		+--------------------+
+		| Database           |
+		+--------------------+
+		| information_schema |
+		| mysql              |
+		| performance_schema |
+		| sys                |
+		+--------------------+
+		4 rows in set (0.06 sec)
+
+		MySQL [(none)]> create database testdb;
+		MySQL [(none)]> use testdb;
+		MySQL [testdb]> show tables;
+		MySQL [testdb]> create table info (name varchar(20), lastame varchar(20), age int(2));
+		MySQL [testdb]> desc info;
+		MySQL [testdb]> insert into info values('gustavo', 'galvao', 38);
+
+	- create a S3 bucket on AWS
+		- Make sure you already got an AWS account
+		- Search for S3
+		- Create a bucket
+		- Name: jenkins-mysql5.7-backup
+
+	- create a user to upload on AWS
+		- Search for IAM
+		- Users -> AddUsers
+		- Username: gusgalvao
+		- Provide user access to the AWS Management Console - optional
+		- I want to create an IAM user
+		- Unmark - Users must create a new password at next sign-in (recommended).
+		- Attach policies directly
+		- Find S3 -> mark AmazonS3FullAccess
+		- Create user
+		
+		* To get your access key ID and secret access key
+			- Open the IAM console at https://console.aws.amazon.com/iam/.
+			- On the navigation menu, choose Users.
+			- Choose your IAM user name (not the check box).
+			- Open the Security credentials tab, and then choose Create access key.
+			- To see the new access key, choose Show. Your credentials resemble the following:
+			- Access key ID: AKIAIOSFODNN7EXAMPLE
+			- Secret access key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+			- To download the key pair, choose Download .csv file. Store the .csv file with keys in a secure location.
+
+
+
+	- take mysql backup and upload to S3
+		- create a dump file from mysql database
+			$ docker exec -ti remote-host bash
+			$ mysqldump -u root -h db_host -p testdb > /tmp/db.sql
+
+			$ cat /tmp/db.sql 
+			-- MySQL dump 10.14  Distrib 5.5.68-MariaDB, for Linux (x86_64)
+			--
+			-- Host: db_host    Database: testdb
+			-- ------------------------------------------------------
+			-- Server version	5.7.41
+
+			/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+			/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+			/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+			/*!40101 SET NAMES utf8 */;
+			/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+			/*!40103 SET TIME_ZONE='+00:00' */;
+			/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+			/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+			/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+			/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+			--
+			-- Table structure for table `info`
+			--
+
+			DROP TABLE IF EXISTS `info`;
+			/*!40101 SET @saved_cs_client     = @@character_set_client */;
+			/*!40101 SET character_set_client = utf8 */;
+			CREATE TABLE `info` (
+			  `name` varchar(20) DEFAULT NULL,
+			  `lastname` varchar(20) DEFAULT NULL,
+			  `age` int(2) DEFAULT NULL
+			) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+			/*!40101 SET character_set_client = @saved_cs_client */;
+
+			--
+			-- Dumping data for table `info`
+			--
+
+			LOCK TABLES `info` WRITE;
+			/*!40000 ALTER TABLE `info` DISABLE KEYS */;
+			INSERT INTO `info` VALUES ('gustavo','galvao',38);
+			/*!40000 ALTER TABLE `info` ENABLE KEYS */;
+			UNLOCK TABLES;
+			/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+			/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+			/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+			/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+			/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+			/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+			/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+			/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+			-- Dump completed on 2023-02-27 18:07:59
+
+		- configure aws cli using access key
+			- copy the access key id from .csv file
+			$ export AWS_ACCESS_KEY_ID=AKIA27AHEVAPPWKBMC6I
+
+			- copy secret key 
+			$ export AWS_SECRET_ACCESS_KEY=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
+
+		- upload mysql backup file to S3
+			$ aws s3 cp /tmp/db.sql s3://jenkins-mysql5.7-backup/db.sql
+			upload: tmp/db.sql to s3://jenkins-mysql5.7-backup/db.sql 
+
+		- automate the upload dump process to S3
+			$ vi /tmp/script.sh
+
+			==============================================================
+
+			#/bin/bash
+
+			DB_HOST=$1
+			DB_PASSWORD=$2
+			DB_NAME=$3
+
+			mysqldump -u root -h $DB_HOST -p$DB_PASSWORD  $DB_NAME > /tmp/db.sql
+
+			==============================================================
+
+			$ chmod +x /tmp/script.sh
+			$ /tmp/script.sh db_host 1234 testdb
+
+		- rename bkp file to print date on log file
+			$ vi /tmp/script.sh
+
+			==============================================================
+
+			#/bin/bash
+
+			DATE=$(date +%H-%M-%S)
+			DB_HOST=$1
+			DB_PASSWORD=$2
+			DB_NAME=$3
+
+			mysqldump -u root -h $DB_HOST -p$DB_PASSWORD  $DB_NAME > /tmp/db-$DATE.sql
+
+			==============================================================
+
+		- export aws keys on /tmp/script.sh
+
+			#/bin/bash
+
+			DATE=$(date +%H-%M-%S)
+			DB_HOST=$1
+			DB_PASSWORD=$2
+			DB_NAME=$3
+
+			mysqldump -u root -h $DB_HOST -p$DB_PASSWORD  $DB_NAME > /tmp/db-$DATE.sql
+			export AWS_ACCESS_KEY_ID=AKIA27AHEVAPPWKBMC6I 
+			export AWS_SECRET_ACCESS_KEY=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
+
+		- final /tmp/script.sh
+
+			==============================================================		
+
+			#/bin/bash
+
+			DATE=$(date +%H-%M-%S)
+			BACKUP=db-$DATE.sql
+
+			DB_HOST=$1
+			DB_PASSWORD=$2
+			DB_NAME=$3
+			AWS_SECRET=$4
+			BUCKET_NAME=$5
+
+			mysqldump -u root -h $DB_HOST -p$DB_PASSWORD $DB_NAME > /tmp/$BACKUP && \
+			export AWS_ACCESS_KEY_ID=AKIA27AHEVAPPWKBMC6I && \
+			export AWS_SECRET_ACCESS_KEY=$AWS_SECRET && \
+			echo "Uploading your $BACKUP backup" && \
+			aws s3 cp /tmp/$BACKUP s3://$BUCKET_NAME/$BACKUP
+
+			==============================================================
+
+			$ /tmp/script.sh db_host 1234 testdb E+8+X8pGEhFvp8l0yIz7FwO/jxy2byfRGprYp4zQ jenkins-mysql5.7-backup
+			Uploading your db-01-56-49.sql backup
+			upload: ./db-01-56-49.sql to s3://jenkins-mysql5.7-backup/db-01-56-49.sql
+
+	- configure mysql db password and aws secret key on jenkins credentials
+
+		- Jenkins Admin -> Credentials
+		- Stores scoped to User: Jenkins Admin -> User: Jenkins Admin -> Global credentials (unrestricted)
+		- Add Credentials
+
+		- Kind: Secret text
+		- ID: MYSQL_PASSWORD
+		- Secret: 1234
+
+		- Kind: Secret text
+		- ID: AWS_SECRET_KEY
+		- Secret: AWS SECRET KEY
+
+	- create a job on jenkins to backup the S3
+		- New Item
+		- Name: backup-to-aws
+		- Freestyle project
+
+		- General
+		- Check "This project is parameterised"
+		- Add parameters
+
+			- Type: String parameter
+			- Name: MYSQL_HOST
+			- Default: db_host
+
+			- Type: String parameter
+			- Name: DATABASE_NAME
+			- Default: testdb
+
+			- Type: String parameter
+			- Name: AWS_BUCKET_NAME
+			- Default: jenkins-mysql5.7-backup
+
+		- Build Environment
+		- Check "Use secret text or file"
+		- Add secrets
+
+			- Variable: MYSQL_PASSWORD
+			- Credentials: MYSQL_PASWORD
+
+			- Variable: AWS_SECRET_KEY
+			- Credentials: AWS_SECRET_KEY
+
+		- Build Steps
+			- Add build step: Execute shell script on remote host using ssh
+			- SSH site: remote_user@remote_host:22
+			- Command: /tmp/script.sh  $MYSQL_HOST $MYSQL_PASSWORD $DATABASE_NAME $AWS_SECRET_KEY $AWS_BUCKET_NAME
+			- Click save and run
+
+	- persist the script on the remote host
+
+		- create aws-s3.sh
+			$ pwd
+			/home/jenkins/jenkins-data
+
+			$ vi aws-s3.sh
+
+			==============================================================		
+
+			#/bin/bash
+
+			DATE=$(date +%H-%M-%S)
+			BACKUP=db-$DATE.sql
+
+			DB_HOST=$1
+			DB_PASSWORD=$2
+			DB_NAME=$3
+			AWS_SECRET=$4
+			BUCKET_NAME=$5
+
+			mysqldump -u root -h $DB_HOST -p$DB_PASSWORD $DB_NAME > /tmp/$BACKUP && \
+			export AWS_ACCESS_KEY_ID=AKIA27AHEVAPPWKBMC6I && \
+			export AWS_SECRET_ACCESS_KEY=$AWS_SECRET && \
+			echo "Uploading your $BACKUP backup" && \
+			aws s3 cp /tmp/$BACKUP s3://$BUCKET_NAME/$BACKUP
+
+			==============================================================
+
+		- give execution permissions to the file
+			$ chmod +x aws-s3.sh
+
+		- edit docker-compose.yml
+			$ vi docker-compose.yml
+
+			==============================================================
+
+			version: '3'
+			services:
+			  jenkins:
+			    container_name: jenkins
+			    image: jenkins/jenkins
+			    ports:
+			      - "8080:8080"
+			    volumes:
+			      - $PWD/jenkins_home:/var/jenkins_home
+			    networks:
+			      - net
+			  remote_host:
+			    container_name: remote-host
+			    image: remote-host
+			    build:
+			      context: centos7
+			    volumes:
+			      - "$PWD/aws-s3.sh:/tmp/script.sh"
+			    networks:
+			      - net
+			  db_host:
+			    container_name: db
+			    image: mysql:5.7
+			    environment:
+			      - "MYSQL_ROOT_PASSWORD=1234"
+			    volumes:
+			      - "$PWD/db_data:/var/lib/mysql"
+			    networks:
+			      - net
+			networks:
+			  net: 
+
+			==============================================================
+
+		- reload the container
+			$ docker-compose up -d
+
+		- run th job on jenkins to test new script file
+
+	- reuse jenkins job to persist on differents DBs to different buckets
+		$ docker exec -ti remote-host bash
+		
+		- create different db on mysql
+		$ mysql -u root -h db_host -p1234
+
+		MySQL [(none)]> create database testdb2;
+		Query OK, 1 row affected (0.08 sec)
+
+		MySQL [(none)]> show databases;
+		+--------------------+
+		| Database           |
+		+--------------------+
+		| information_schema |
+		| mysql              |
+		| performance_schema |
+		| sys                |
+		| testdb2            |
+		| testdb             |
+		+--------------------+
+		6 rows in set (0.07 sec)
+
+		- create a second bucket on S#
+			Bucket name: jenkins-mysql5.7-backup2
+
+		- change the parameters on the jenkins job and run
+			- MYSQL_HOST: db_host
+			- DATABASE_NAME: testdb2
+			- AWS_BUCKET_NAME: jenkins-mysql5.7-backup2
+
+		- run and success
