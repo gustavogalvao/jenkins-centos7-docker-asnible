@@ -1,0 +1,6 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<org.boozallen.plugins.jte.init.governance.TemplateGlobalConfig plugin="templating-engine@2.5.3">
+  <tier>
+    <configurationProvider class="org.boozallen.plugins.jte.init.governance.config.NullPipelineConfigurationProvider"/>
+  </tier>
+</org.boozallen.plugins.jte.init.governance.TemplateGlobalConfig>

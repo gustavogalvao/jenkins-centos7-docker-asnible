@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Plugin-Dependencies: workflow-multibranch:2.20,workflow-api:2.40,branc
+ h-api:2.0.20,scm-api:2.6.4,junit:1.24,script-security:1.76,pipeline-m
+ odel-definition:1.8.4
+Long-Name: Templating Engine
+Plugin-Developers: Steven Terrana:steven-terrana:terrana_steven@bah.co
+ m,Carlos Okieffe:carlosokieffebah:okieffe_carlos@bah.com
+Group-Id: org.jenkins-ci.plugins
+Minimum-Java-Version: 1.8
+Extension-Name: templating-engine
+Jenkins-Version: 2.263.1
+Plugin-Version: 2.5.3
+Url: https://github.com/jenkinsci/templating-engine-plugin
+Short-Name: templating-engine
+

@@ -1,0 +1,14 @@
+<l:dependencies xmlns:l='licenses' version='2.5.1' artifactId='templating-engine-plugin' groupId='org.jenkins-ci.plugins'>
+  <l:dependency version='2.5.1' artifactId='templating-engine-plugin' groupId='org.jenkins-ci.plugins' name='Templating Engine' url='https://github.com/jenkinsci/templating-engine-plugin'>
+    <l:description>Allows users to create tool-agnostic, templated pipelines to be shared by multiple teams</l:description>
+  </l:dependency>
+  <l:dependency version='1.4.0' artifactId='jgrapht-core' groupId='org.jgrapht' name='JGraphT - Core' url=''>
+    <l:description></l:description>
+    <l:license url='http://www.eclipse.org/legal/epl-v20.html' name='Eclipse Public License (EPL) 2.0' />
+    <l:license url='http://jgrapht.sourceforge.net/LGPL.html' name='GNU Lesser General Public License Version 2.1, February 1999' />
+  </l:dependency>
+  <l:dependency version='0.11' artifactId='jheaps' groupId='org.jheaps' name='JHeaps' url='http://www.jheaps.org'>
+    <l:description>A free, production-ready, efficient Java library containing a collection of heap data-structures.</l:description>
+    <l:license url='http://www.apache.org/licenses/LICENSE-2.0.txt' name='Apache License, Version 2.0' />
+  </l:dependency>
+</l:dependencies>
